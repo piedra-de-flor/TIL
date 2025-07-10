@@ -46,3 +46,105 @@ CDC는 전통적인 Full Dump 또는 Batch ETL과 달리 **변경된 데이터�
 
 ## CDC → 메시징 → 싱크 구조 예시
 
+```plaintext
+[MySQL binlog]
+    ↓
+[Debezium Connector]
+    ↓
+Kafka → Kafka Topic → Kafka Connect Sink
+    ↓
+Elasticsearch / MongoDB / PostgreSQL
+```
+
+---
+
+## CDC 이벤트 구조 (Debezium 기준)
+
+```json
+{
+  "before": { "id": 1, "price": 100 },
+  "after":  { "id": 1, "price": 120 },
+  "op": "u",      // "c"=create, "u"=update, "d"=delete
+  "ts_ms": 1628272894738
+}
+```
+
+---
+
+## CDC 실무 활용 예시
+
+| 분야 | 활용 방식 |
+|------|-----------|
+| 실시간 검색 | RDB → Kafka → Elasticsearch |
+| 마이크로서비스 | DB 변경 → 이벤트 발행 (Event Sourcing 유사) |
+| 데이터 웨어하우징 | OLTP → Kafka → Redshift/BigQuery |
+| 보안/감사 | CDC 로그 → 감사 시스템 저장 |
+
+---
+
+## 실무 설계 시 고려 사항
+
+### 1. Idempotency (중복 처리 방지)
+- Kafka key 기반 UPSERT
+- 이벤트 ID, 버전 정보 사용
+
+### 2. 정합성 보장
+- Kafka offset 순서 보장
+- 파티션 키 유지로 순서 유지
+
+### 3. 장애 복구 / DLQ
+- Sink 오류 시 DLQ 구성
+- Retention 시간 고려해 재처리
+
+### 4. 보안 이슈
+- binlog 접근 권한 관리
+- 개인정보 마스킹
+
+### 5. 스키마 진화 대응
+- Schema Registry + Avro 사용
+- Dynamic JSON 처리 대응
+
+---
+
+## 실시간성 확보 전략
+
+| 전략 | 설명 |
+|------|------|
+| Snapshot 생략 | `snapshot.mode=schema_only` 또는 `never` 설정 |
+| Event 필터링 | 필요한 테이블/컬럼만 감지 |
+| Kafka 튜닝 | acks, linger.ms, compression.type 등 |
+| Sink 병렬화 | tasks.max, async 처리 |
+| Debezium 설정 | poll.interval.ms, buffer.size 조정 등 |
+
+---
+
+## CDC vs Event Sourcing vs CQRS
+
+| 항목 | CDC | Event Sourcing | CQRS |
+|------|-----|----------------|------|
+| 목적 | DB 복제/동기화 | 상태 변경의 이벤트 기록 | 읽기/쓰기 분리 |
+| 저장 방식 | 변경된 데이터 | 도메인 이벤트 로그 | 명령/조회 모델 분리 |
+| Kafka 활용 | 중간 브로커 | 이벤트 저장소 | 읽기 side 구성 |
+| 적합한 상황 | 이기종 시스템 연동 | 상태 이력 보존 | 복잡한 조회 성능 분리 |
+
+---
+
+## 테스트 및 운영 가이드
+
+| 항목 | 권장 방안 |
+|------|----------|
+| 테스트 | DB 변경 → Kafka 메시지 → Sink 결과 검증 |
+| 모니터링 | Kafka Connect metrics, 토픽 lag, 로그 확인 |
+| 데이터 검증 | 원본 DB ↔ 대상 DB 비교 스크립트 |
+| 스케일 아웃 | Connector, Sink, Kafka Broker 병렬화 구성 |
+
+---
+
+## 미래 확장
+
+- LLM 기반 CDC 이벤트 요약/의미 추출
+- CDC → 자동 감사 로그 변환 ("가격 100 → 120 수정됨")
+- Kafka + Debezium + OpenSearch 실시간 분석 대시보드
+- CQRS + CDC 융합으로 트리거리스 이벤트 시스템 구성
+
+
