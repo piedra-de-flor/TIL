@@ -1,4 +1,4 @@
-# Operational Transformation (OT) vs. CRDT
+# Operational Transformation (OT) vs CRDT
 
 ## 목적
 실시간 협업 시스템에서 **여러 사용자의 동시 편집을 병합**할 수 있도록 지원하는 알고리즘
