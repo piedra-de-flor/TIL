@@ -1,4 +1,4 @@
-# Change Data Capture (CDC) — 완전 정리
+# Change Data Capture (CDC) — 완전 정리  
 
 ## 개념
 
